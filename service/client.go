@@ -105,7 +105,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 			if err != nil {
 				return nil, err
 			}
-			s.brokerService.PublishClientEvent(ClientUpdated, &client)
+			s.publishClientEvent(ClientUpdated, &client)
 		} else {
 			err = json.Unmarshal(client.Inbounds, &inboundIds)
 			if err != nil {
@@ -115,7 +115,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 			if err != nil {
 				return nil, err
 			}
-			s.brokerService.PublishClientEvent(ClientCreated, &client)
+			s.publishClientEvent(ClientCreated, &client)
 		}
 	case "addbulk":
 		var clients []*model.Client
@@ -136,7 +136,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 			return nil, err
 		}
 		for _, client := range clients {
-			s.brokerService.PublishClientEvent(ClientCreated, client)
+			s.publishClientEvent(ClientCreated, client)
 		}
 	case "editbulk":
 		var clients []*model.Client
@@ -163,6 +163,9 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 		if err != nil {
 			return nil, err
 		}
+		for _, client := range clients {
+			s.publishClientEvent(ClientUpdated, client)
+		}
 	case "delbulk":
 		var ids []uint
 		err = json.Unmarshal(data, &ids)
@@ -181,6 +184,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 				return nil, err
 			}
 			inboundIds = common.UnionUintArray(inboundIds, clientInbounds)
+			s.publishClientEvent(ClientDeleted, &client)
 		}
 		err = tx.Where("id in ?", ids).Delete(model.Client{}).Error
 		if err != nil {
@@ -205,7 +209,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 		if err != nil {
 			return nil, err
 		}
-		s.brokerService.PublishClientEvent(ClientDeleted, &client)
+		s.publishClientEvent(ClientDeleted, &client)
 	default:
 		return nil, common.NewErrorf("unknown action: %s", act)
 	}
@@ -588,4 +592,13 @@ func (s *ClientService) findInboundsChanges(tx *gorm.DB, client *model.Client, f
 	diffInbounds := common.DiffUintArray(oldInboundIds, newInboundIds)
 
 	return diffInbounds, nil
+}
+
+func (s *ClientService) publishClientEvent(action string, client *model.Client) {
+	if s.brokerService == nil || !s.brokerService.IsEnabled() {
+		return
+	}
+	if err := s.brokerService.PublishClientEvent(action, client); err != nil {
+		logger.Errorf("failed to publish client event %s for client %s: %v", action, client.Name, err)
+	}
 }
