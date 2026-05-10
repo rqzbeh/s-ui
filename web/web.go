@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alireza0/s-ui/api"
 	"github.com/alireza0/s-ui/config"
@@ -34,13 +35,15 @@ type Server struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	settingService service.SettingService
+	brokerService  *service.BrokerService
 }
 
-func NewServer() *Server {
+func NewServer(brokerService *service.BrokerService) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:           ctx,
+		cancel:        cancel,
+		brokerService: brokerService,
 	}
 }
 
@@ -104,10 +107,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.StaticFS(assetsBasePath, http.FS(assetsFS))
 
 	group_apiv2 := engine.Group(base_url + "apiv2")
-	apiv2 := api.NewAPIv2Handler(group_apiv2)
+	apiv2 := api.NewAPIv2Handler(group_apiv2, s.brokerService)
 
 	group_api := engine.Group(base_url + "api")
-	api.NewAPIHandler(group_api, apiv2)
+	api.NewAPIHandler(group_api, apiv2, s.brokerService)
 
 	// Serve index.html as the entry point
 	// Handle all other routes by serving index.html
@@ -200,20 +203,26 @@ func (s *Server) Start() (err error) {
 }
 
 func (s *Server) Stop() error {
-	s.cancel()
 	var err error
 	if s.httpServer != nil {
-		err = s.httpServer.Shutdown(s.ctx)
+		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 30*time.Second)
+		err = s.httpServer.Shutdown(shutdownCtx)
+		cancelShutdown()
 		if err != nil {
+			s.cancel()
+			if s.listener != nil {
+				_ = s.listener.Close()
+			}
 			return err
 		}
-	}
-	if s.listener != nil {
+	} else if s.listener != nil {
 		err = s.listener.Close()
 		if err != nil {
+			s.cancel()
 			return err
 		}
 	}
+	s.cancel()
 	return nil
 }
 

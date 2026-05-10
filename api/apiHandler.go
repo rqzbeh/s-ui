@@ -3,6 +3,7 @@ package api
 import (
 	"strings"
 
+	"github.com/alireza0/s-ui/service"
 	"github.com/alireza0/s-ui/util/common"
 
 	"github.com/gin-gonic/gin"
@@ -10,13 +11,16 @@ import (
 
 type APIHandler struct {
 	ApiService
-	apiv2 *APIv2Handler
+	apiv2         *APIv2Handler
+	brokerService *service.BrokerService
 }
 
-func NewAPIHandler(g *gin.RouterGroup, a2 *APIv2Handler) {
+func NewAPIHandler(g *gin.RouterGroup, a2 *APIv2Handler, brokerService *service.BrokerService) {
 	a := &APIHandler{
-		apiv2: a2,
+		apiv2:         a2,
+		brokerService: brokerService,
 	}
+	a.ClientService = *service.NewClientService(brokerService)
 	a.initRouter(g)
 }
 
@@ -48,6 +52,8 @@ func (a *APIHandler) postHandler(c *gin.Context) {
 		a.ApiService.RestartSb(c)
 	case "linkConvert":
 		a.ApiService.LinkConvert(c)
+	case "subConvert":
+		a.ApiService.SubConvert(c)
 	case "importdb":
 		a.ApiService.ImportDb(c)
 	case "addToken":
@@ -97,6 +103,8 @@ func (a *APIHandler) getHandler(c *gin.Context) {
 		a.ApiService.GetTokens(c)
 	case "singbox-config":
 		a.ApiService.GetSingboxConfig(c)
+	case "checkOutbound":
+		a.ApiService.GetCheckOutbound(c)
 	default:
 		jsonMsg(c, "failed", common.NewError("unknown action: ", action))
 	}

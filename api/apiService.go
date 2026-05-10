@@ -330,6 +330,12 @@ func (a *ApiService) LinkConvert(c *gin.Context) {
 	jsonObj(c, result, err)
 }
 
+func (a *ApiService) SubConvert(c *gin.Context) {
+	link := c.Request.FormValue("link")
+	result, err := util.GetExternalSub(link)
+	jsonObj(c, result, err)
+}
+
 func (a *ApiService) ImportDb(c *gin.Context) {
 	file, _, err := c.Request.FormFile("db")
 	if err != nil {
@@ -380,13 +386,7 @@ func (a *ApiService) DeleteToken(c *gin.Context) {
 }
 
 func (a *ApiService) GetSingboxConfig(c *gin.Context) {
-	config, err := a.ConfigService.GetConfig("")
-	if err != nil {
-		c.Status(400)
-		c.Writer.WriteString(err.Error())
-		return
-	}
-	rawConfig, err := json.MarshalIndent(config, "", "  ")
+	rawConfig, err := a.ConfigService.GetConfig("")
 	if err != nil {
 		c.Status(400)
 		c.Writer.WriteString(err.Error())
@@ -394,5 +394,12 @@ func (a *ApiService) GetSingboxConfig(c *gin.Context) {
 	}
 	c.Header("Content-Type", "application/json")
 	c.Header("Content-Disposition", "attachment; filename=config_"+time.Now().Format("20060102-150405")+".json")
-	c.Writer.Write(rawConfig)
+	c.Writer.Write(*rawConfig)
+}
+
+func (a *ApiService) GetCheckOutbound(c *gin.Context) {
+	tag := c.Query("tag")
+	link := c.Query("link")
+	result := a.ConfigService.CheckOutbound(tag, link)
+	jsonObj(c, result, nil)
 }
