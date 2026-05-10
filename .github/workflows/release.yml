@@ -18,6 +18,9 @@ on:
       - 'go.sum'
       - 's-ui.service'
 
+permissions:
+  contents: write
+
 env:
   NODE_VERSION: "25"
   CRONET_GO_VERSION: "2fef65f9dba90ddb89a87d00a6eb6165487c10c1"
