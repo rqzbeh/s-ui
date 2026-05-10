@@ -28,6 +28,7 @@
 | Advanced Traffic Routing Interface     | :heavy_check_mark: |
 | Client & Traffic & System Status       | :heavy_check_mark: |
 | Subscription Link (link/json/clash + info)| :heavy_check_mark: |
+| Multi-Panel Client Sync (NATS)            | :heavy_check_mark: |
 | Dark/Light Theme                       | :heavy_check_mark: |
 | API Interface                          | :heavy_check_mark: |
 
@@ -67,6 +68,40 @@ bash <(curl -Ls https://raw.githubusercontent.com/rqzbeh/s-ui/master/install.sh)
 2. Extract the ZIP file
 3. Run `install-windows.bat` as Administrator
 4. Follow the installation wizard
+
+## NATS-based Multi-Panel Client Sync
+
+S-UI includes built-in support for NATS to sync **client create/update/delete events** between panels.
+
+- Setting key: `NatsUrl`
+- Default: empty (disabled)
+- Subject used internally: `s-ui.clients.events`
+
+### 1) Start a NATS server
+
+Example with Docker:
+
+```sh
+docker run -d --name nats -p 4222:4222 nats:latest
+```
+
+### 2) Configure each S-UI panel
+
+Set `NatsUrl` in panel settings to your NATS address (same value on all panels), for example:
+
+```text
+nats://<nats-host>:4222
+```
+
+If `NatsUrl` is empty, broker sync is disabled.
+
+### 3) Restart panels
+
+Restart S-UI after updating `NatsUrl` so each panel reconnects to NATS.
+
+### 4) Use it
+
+After connection, client changes made in one panel are published to NATS and applied on other connected panels automatically.
 
 ## Install legacy Version
 
