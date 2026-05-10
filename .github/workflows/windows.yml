@@ -60,6 +60,7 @@ jobs:
       matrix:
         include:
           - { arch: amd64, runner: windows-latest, cgo: "1" }
+          - { arch: "386", runner: ubuntu-latest, cgo: "0" }
           - { arch: arm64, runner: ubuntu-latest, cgo: "0" }
     runs-on: ${{ matrix.runner }}
     steps:
