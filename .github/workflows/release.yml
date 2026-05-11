@@ -233,7 +233,7 @@ jobs:
       - name: Build s-ui
         run: |
           set -e
-          export CGO_ENABLED=0
+          export CGO_ENABLED=1
           export GOOS=darwin
           export GOARCH=${{ matrix.arch }}
           BUILD_TAGS="with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_purego,badlinkname,tfogo_checklinkname0,with_tailscale"
